@@ -1,4 +1,4 @@
-import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
+import * as monaco from "monaco-editor";
 import { createEffect, createMemo } from "solid-js";
 import { ChangeHandler, MonacoEditorProps } from "./types";
 import { noop, processSize } from "./utils";
