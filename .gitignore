@@ -26,3 +26,4 @@ yarn-error.log*
 .vscode
 
 !eslint.config.js
+!.eslintrc.js
