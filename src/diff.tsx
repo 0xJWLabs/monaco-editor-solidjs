@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
-import { createEffect, createMemo } from "solid-js";
 import { MonacoDiffEditorProps } from "./types";
+import { useEffect, useRef, useMemo } from "@solidjs-hooks/solidjs-hooks";
 import { noop, processSize } from "./utils";
 
 function MonacoDiffEditor({
@@ -21,19 +21,19 @@ function MonacoDiffEditor({
   originalUri,
   modifiedUri,
 }: MonacoDiffEditorProps) {
-  let containerElement: HTMLDivElement | null = null;
+  const containerElement = useRef<HTMLDivElement | null>(null);
 
-  let editor: monaco.editor.IStandaloneDiffEditor | null = null;
+  const editor = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
 
-  let _subscription: monaco.IDisposable | null = null;
+  const _subscription = useRef<monaco.IDisposable | null>(null);
 
-  let __prevent_trigger_change_event: boolean | null = null;
+  const __prevent_trigger_change_event = useRef<boolean | null>(null);
 
   const fixedWidth = processSize(width);
 
   const fixedHeight = processSize(height);
 
-  const style = createMemo(
+  const style = useMemo(
     () => ({
       width: fixedWidth,
       height: fixedHeight,
@@ -47,18 +47,18 @@ function MonacoDiffEditor({
   };
 
   const handleEditorDidMount = () => {
-    editorDidMount(editor, monaco);
+    editorDidMount(editor.current, monaco);
 
-    const { modified } = editor.getModel();
-    _subscription = modified.onDidChangeContent((event) => {
-      if (!__prevent_trigger_change_event) {
+    const { modified } = editor.current.getModel();
+    _subscription.current = modified.onDidChangeContent((event) => {
+      if (!__prevent_trigger_change_event.current) {
         onChange(modified.getValue(), event);
       }
     });
   };
 
   const handleEditorWillUnmount = () => {
-    editorWillUnmount(editor, monaco);
+    editorWillUnmount(editor.current, monaco);
   };
 
   const initModels = () => {
@@ -93,19 +93,19 @@ function MonacoDiffEditor({
       );
     }
 
-    editor.setModel({
+    editor.current.setModel({
       original: originalModel,
       modified: modifiedModel,
     });
   };
 
-  createEffect(
+  useEffect(
     () => {
-      if (containerElement) {
+      if (containerElement.current) {
         // Before initializing monaco editor
         handleEditorWillMount();
-        editor = monaco.editor.createDiffEditor(
-          containerElement,
+        editor.current = monaco.editor.createDiffEditor(
+          containerElement.current,
           {
             ...(className ? { extraEditorClassName: className } : {}),
             ...options,
@@ -118,38 +118,39 @@ function MonacoDiffEditor({
         handleEditorDidMount();
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  createEffect(() => {
-    if (editor) {
-      editor.updateOptions({
+  useEffect(() => {
+    if (editor.current) {
+      editor.current.updateOptions({
         ...(className ? { extraEditorClassName: className } : {}),
         ...options,
       });
     }
   }, [className, options]);
 
-  createEffect(() => {
-    if (editor) {
-      editor.layout();
+  useEffect(() => {
+    if (editor.current) {
+      editor.current.layout();
     }
   }, [width, height]);
 
-  createEffect(() => {
-    if (editor) {
-      const { original: originalEditor, modified } = editor.getModel();
+  useEffect(() => {
+    if (editor.current) {
+      const { original: originalEditor, modified } = editor.current.getModel();
       monaco.editor.setModelLanguage(originalEditor, language);
       monaco.editor.setModelLanguage(modified, language);
     }
   }, [language]);
 
-  createEffect(() => {
-    if (editor) {
-      const { modified } = editor.getModel();
-      __prevent_trigger_change_event = true;
+  useEffect(() => {
+    if (editor.current) {
+      const { modified } = editor.current.getModel();
+      __prevent_trigger_change_event.current = true;
       // modifiedEditor is not in the public API for diff editors
-      editor.getModifiedEditor().pushUndoStop();
+      editor.current.getModifiedEditor().pushUndoStop();
       // pushEditOperations says it expects a cursorComputer, but doesn't seem to need one.
       // @ts-expect-error
       modified.pushEditOperations(
@@ -162,31 +163,31 @@ function MonacoDiffEditor({
         ],
       );
       // modifiedEditor is not in the public API for diff editors
-      editor.getModifiedEditor().pushUndoStop();
-      __prevent_trigger_change_event = false;
+      editor.current.getModifiedEditor().pushUndoStop();
+      __prevent_trigger_change_event.current = false;
     }
   }, [value]);
 
-  createEffect(() => {
+  useEffect(() => {
     monaco.editor.setTheme(theme);
   }, [theme]);
 
-  createEffect(() => {
-    if (editor) {
-      const { original: originalEditor } = editor.getModel();
+  useEffect(() => {
+    if (editor.current) {
+      const { original: originalEditor } = editor.current.getModel();
       if (original !== originalEditor.getValue()) {
         originalEditor.setValue(original);
       }
     }
   }, [original]);
 
-  createEffect(
+  useEffect(
     () => () => {
-      if (editor) {
+      if (editor.current) {
         handleEditorWillUnmount();
-        editor.dispose();
+        editor.current.dispose();
         const { original: originalEditor, modified } =
-          editor.getModel();
+          editor.current.getModel();
         if (originalEditor) {
           originalEditor.dispose();
         }
@@ -194,8 +195,8 @@ function MonacoDiffEditor({
           modified.dispose();
         }
       }
-      if (_subscription) {
-        _subscription.dispose();
+      if (_subscription.current) {
+        _subscription.current.dispose();
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -204,30 +205,13 @@ function MonacoDiffEditor({
 
   return (
     <div
-      ref={containerElement}
+      ref={containerElement.current}
       // @ts-ignore
       style={style}
       className="solid-monaco-editor-container"
     />
   );
 }
-
-MonacoDiffEditor.defaultProps = {
-  width: "100%",
-  height: "100%",
-  original: null,
-  value: null,
-  defaultValue: "",
-  language: "javascript",
-  theme: null,
-  options: {},
-  overrideServices: {},
-  editorWillMount: noop,
-  editorDidMount: noop,
-  editorWillUnmount: noop,
-  onChange: noop,
-  className: null,
-};
 
 MonacoDiffEditor.displayName = "MonacoDiffEditor";
 
