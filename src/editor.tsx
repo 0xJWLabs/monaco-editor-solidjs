@@ -4,19 +4,19 @@ import { ChangeHandler, MonacoEditorProps } from "./types";
 import { noop, processSize } from "./utils";
 
 function MonacoEditor({
-  width,
-  height,
-  value,
-  defaultValue,
-  language,
-  theme,
-  options,
-  overrideServices,
-  editorWillMount,
-  editorDidMount,
-  editorWillUnmount,
-  onChange,
-  className,
+  width = "100%",
+  height = "100%",
+  value = null,
+  defaultValue = "",
+  language = "javascript",
+  theme = null,
+  options = {},
+  overrideServices = {},
+  editorWillMount = noop,
+  editorDidMount = noop,
+  editorWillUnmount = noop,
+  onChange = noop,
+  className = null,
   uri
 } : MonacoEditorProps) {
   let containerElement: HTMLDivElement | null = null;
@@ -40,12 +40,6 @@ function MonacoEditor({
   const handleEditorWillMount = () => {
     const finalOptions = editorWillMount(monaco);
     return finalOptions || {};
-
-    _subscription = editor.onDidChangeModelContent((event) => {
-      if (!__prevent_trigger_change_event) {
-        onChangeRef?.(editor.getValue(), event);
-      }
-    })
   }
 
   const handleEditorDidMount = () => {
