@@ -1,0 +1,32 @@
+{
+  "name": "monaco-editor-solidjs",
+  "main": "lib/index.js",
+  "module": "lib/index",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "preversion": "npm run lint",
+    "build": "bunx tsc",
+    "clean": "rimraf lib",
+    "format": "eslint --fix '{src,example}/**/*.{ts,tsx}'",
+    "lint": "eslint '{src,example}/**/*.{ts,tsx}'",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
+    "eslint": "^9.12.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-solid": "^0.14.3",
+    "monaco-editor": "^0.52.0",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "solid-js": "^1.9.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "prop-types": "^15.8.1"
+  }
+}
