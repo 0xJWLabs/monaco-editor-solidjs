@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 import { MonacoEditorProps } from "./types";
-import { useEffect, useRef, useMemo } from "@solidjs-hooks/solidjs-hooks";
+import { createEffect, createMemo, createSignal } from "solid-js";
 import { noop, processSize } from "./utils";
 
 function MonacoEditor({
@@ -18,19 +18,18 @@ function MonacoEditor({
   onChange = noop,
   className = null,
   uri
-} : MonacoEditorProps) {
-  const containerElement = useRef<HTMLDivElement | null>(null);
-  const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const _subscription = useRef<monaco.IDisposable | null>(null);
-  const __prevent_trigger_change_event = useRef<boolean | null>(null);
-  
+}: MonacoEditorProps) {
+  const [containerElement] = createSignal<HTMLDivElement | null>(null);
+  const [editor, setEditor] = createSignal<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [subscription, setSubscription] = createSignal<monaco.IDisposable | null>(null);
+  const [preventTriggerChangeEvent, setPreventTriggerChangeEvent] = createSignal<boolean | null>(null);
+
   const fixedWidth = processSize(width);
   const fixedHeight = processSize(height);
 
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const [onChangeRef] = createSignal(onChange);
 
-  const style = useMemo(
+  const style = createMemo(
     () => ({
       width: fixedWidth,
       height: fixedHeight,
@@ -44,22 +43,22 @@ function MonacoEditor({
   }
 
   const handleEditorDidMount = () => {
-    editorDidMount(editor.current, monaco);
-    _subscription.current = editor.current.onDidChangeModelContent((event) => {
-      if (!__prevent_trigger_change_event.current) {
-        onChangeRef.current?.(editor.current.getValue(), event);
+    editorDidMount(editor(), monaco);
+    setSubscription(editor().onDidChangeModelContent((event) => {
+      if (!preventTriggerChangeEvent()) {
+        onChangeRef()?.(editor().getValue(), event);
       }
-    })
+    }))
   }
 
   const handleEditorWillUnmount = () => {
-    editorWillUnmount(editor.current, monaco);
+    editorWillUnmount(editor(), monaco);
   }
 
   const initMonaco = () => {
     const finalValue = value !== null ? value : defaultValue;
 
-    if (containerElement.current) {
+    if (containerElement()) {
       const finalOptions = { ...options, ...handleEditorWillMount() };
       const modelUri = uri?.(monaco);
       let model = modelUri && monaco.editor.getModel(modelUri);
@@ -69,8 +68,8 @@ function MonacoEditor({
       } else {
         model = monaco.editor.createModel(finalValue, language, modelUri);
       }
-      editor.current = monaco.editor.create(
-        containerElement.current,
+      setEditor(monaco.editor.create(
+        containerElement(),
         {
           model,
           ...(className ? { extraEditorClassName: className } : {}),
@@ -78,22 +77,22 @@ function MonacoEditor({
           ...(theme ? { theme } : {}),
         },
         overrideServices
-      );
+      ));
       handleEditorDidMount();
     }
   };
 
-  useEffect(initMonaco, []);
+  createEffect(initMonaco, []);
 
-  useEffect(() => {
-    if (editor.current) {
-      if (value === editor.current.getValue()) {
+  createEffect(() => {
+    if (editor()) {
+      if (value === editor().getValue()) {
         return;
       }
 
-      const model = editor.current.getModel();
-      __prevent_trigger_change_event.current = true;
-      editor.current.pushUndoStop();
+      const model = editor().getModel();
+      setPreventTriggerChangeEvent(true);
+      editor().pushUndoStop();
       model.pushEditOperations(
         [],
         [
@@ -104,46 +103,47 @@ function MonacoEditor({
         ],
         undefined,
       );
-      editor.current.pushUndoStop();
-      __prevent_trigger_change_event.current = false;
+      editor().pushUndoStop();
+      setPreventTriggerChangeEvent(false);
     }
   }, [value]);
 
-  useEffect(() => {
-    if (editor) {
-      const model = editor.current.getModel();
+  createEffect(() => {
+    if (editor()) {
+      const model = editor().getModel();
       monaco.editor.setModelLanguage(model, language);
     }
   }, [language]);
 
-  useEffect(() => {
-    if (editor.current) {
+  createEffect(() => {
+    if (editor()) {
       const { model: _model, ...optionsWithoutModel } = options;
-      editor.current.updateOptions({
+      editor().updateOptions({
         ...(className ? { extraEditorClassName: className } : {}),
         ...optionsWithoutModel,
       });
     }
   }, [className, options]);
 
-  useEffect(() => {
-    if (editor.current) {
-      editor.current.layout();
+  createEffect(() => {
+    if (editor()) {
+      editor().layout();
     }
   }, [width, height]);
 
-  useEffect(() => {
+  createEffect(() => {
     monaco.editor.setTheme(theme);
+    console.log(theme);
   }, [theme]);
 
-  useEffect(
+  createEffect(
     () => () => {
-      if (editor.current) {
+      if (editor()) {
         handleEditorWillUnmount();
-        editor.current.dispose();
+        editor().dispose();
       }
-      if (_subscription.current) {
-        _subscription.current.dispose();
+      if (subscription()) {
+        subscription().dispose();
       }
     },
     []
@@ -151,7 +151,7 @@ function MonacoEditor({
 
   return (
     // @ts-ignore
-    <div ref={containerElement.current} style={style} class="solid-monaco-editor-container"></div>
+    <div ref={containerElement()} style={style()} class="solid-monaco-editor-container"></div>
   )
 }
 
