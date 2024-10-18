@@ -1,7 +1,7 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { createEffect, createMemo } from "solid-js";
-import { ChangeHandler, MonacoEditorProps } from "./types";
-import { noop, processSize } from "./utils";
+import { ChangeHandler, MonacoEditorProps } from "./types.js";
+import { noop, processSize } from "./utils.js";
 
 function MonacoEditor({
   width,

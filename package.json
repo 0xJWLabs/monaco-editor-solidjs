@@ -1,17 +1,17 @@
 {
   "name": "monaco-editor-solidjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Monaco Editor for SolidJS",
-  "main": "lib/index.js",
+  "main": "lib/index.jsx",
   "module": "lib/index",
   "types": "lib/index.d.ts",
   "scripts": {
     "preversion": "npm run lint",
-    "build": "bunx tsc",
+    "build": "tsc",
     "clean": "rimraf lib",
     "format": "eslint --fix '{src,example}/**/*.{ts,tsx}'",
     "lint": "eslint '{src,example}/**/*.{ts,tsx}'",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build"
   },
   "keywords": [
     "monaco",
