@@ -1,5 +1,7 @@
 {
   "name": "monaco-editor-solidjs",
+  "version": "0.1.0",
+  "description": "Monaco Editor for SolidJS",
   "main": "lib/index.js",
   "module": "lib/index",
   "types": "lib/index.d.ts",
@@ -11,6 +13,18 @@
     "lint": "eslint '{src,example}/**/*.{ts,tsx}'",
     "prepublishOnly": "npm run lint && npm run build"
   },
+  "keywords": [
+    "monaco",
+    "editor",
+    "solid",
+    "solidjs",
+    "vscode"
+  ],
+  "authors": [
+    "0xJWLabs <0xJWLabs@gmail.com>"
+  ],
+  "repository": "https://github.com/0xJWLabs/monaco-editor-solidjs",
+  "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
