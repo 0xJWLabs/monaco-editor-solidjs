@@ -1,16 +1,24 @@
 {
   "name": "monaco-editor-solidjs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Monaco Editor for SolidJS",
-  "main": "lib/index.jsx",
-  "module": "lib/index",
-  "types": "lib/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "solid": "./dist/index.jsx",
+    "import": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "require": {
+      "types": "./dist/index.d.cts",
+      "default": "./dist/index.cjs"
+    }
+  },
   "scripts": {
-    "preversion": "npm run lint",
-    "build": "tsc",
+    "build": "tsup",
     "clean": "rimraf lib",
-    "format": "eslint --fix '{src,example}/**/*.{ts,tsx}'",
-    "lint": "eslint '{src,example}/**/*.{ts,tsx}'",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
@@ -39,6 +47,8 @@
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "solid-js": "^1.9.2",
+    "tsup": "^8.3.0",
+    "tsup-preset-solid": "^2.2.0",
     "typescript": "^5.6.3"
   },
   "peerDependencies": {
@@ -47,5 +57,8 @@
   },
   "dependencies": {
     "prop-types": "^15.8.1"
-  }
+  },
+  "browser": {},
+  "typesVersions": {},
+  "type": "module"
 }

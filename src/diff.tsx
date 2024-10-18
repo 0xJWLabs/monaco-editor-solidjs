@@ -1,7 +1,7 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { createEffect, createMemo } from "solid-js";
-import { MonacoDiffEditorProps } from "./types.js";
-import { noop, processSize } from "./utils.js";
+import { MonacoDiffEditorProps } from "./types";
+import { noop, processSize } from "./utils";
 
 function MonacoDiffEditor({
   width,
