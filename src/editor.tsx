@@ -1,160 +1,173 @@
-import * as monaco from "monaco-editor";
+import * as monacoEditor from "monaco-editor";
 import { MonacoEditorProps } from "./types";
-import { createEffect, createMemo, createSignal } from "solid-js";
-import { noop, processSize } from "./utils";
+import { createEffect, createSignal, onCleanup, onMount, on, mergeProps } from "solid-js";
+import { getOrCreateModel, noop } from "./utils";
+import loader, { Monaco } from '@monaco-editor/loader';
+import { MonacoContainer } from "./container";
+import { Loader } from "./loader";
 
-function MonacoEditor({
-  width = "100%",
-  height = "100%",
-  value = null,
-  defaultValue = "",
-  language = "javascript",
-  theme = null,
-  options = {},
-  overrideServices = {},
-  editorWillMount = noop,
-  editorDidMount = noop,
-  editorWillUnmount = noop,
-  onChange = noop,
-  className = null,
-  uri
-}: MonacoEditorProps) {
-  const [containerElement] = createSignal<HTMLDivElement | null>(null);
-  const [editor, setEditor] = createSignal<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [subscription, setSubscription] = createSignal<monaco.IDisposable | null>(null);
-  const [preventTriggerChangeEvent, setPreventTriggerChangeEvent] = createSignal<boolean | null>(null);
-
-  const fixedWidth = processSize(width);
-  const fixedHeight = processSize(height);
-
-  const [onChangeRef] = createSignal(onChange);
-
-  const style = createMemo(
-    () => ({
-      width: fixedWidth,
-      height: fixedHeight,
-    }),
-    [fixedWidth, fixedHeight],
+export function MonacoEditor(editorProps: MonacoEditorProps) {
+  const props = mergeProps(
+    {
+      theme: 'vs-light',
+      width: '100%',
+      height: '100%',
+      language: 'javascript',
+      loadingState: 'Loading...',
+      saveViewState: true,
+      onBeforeMount: noop,
+      onMount: noop,
+      onBeforeUnmount: noop,
+    },
+    editorProps,
   );
+  const [monaco, setMonaco] = createSignal<Monaco>()
+  const [editor, setEditor] = createSignal<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
+  const [subscription, setSubscription] = createSignal<monacoEditor.IDisposable | null>(null);
+  const [preventTriggerChangeEvent, setPreventTriggerChangeEvent] = createSignal<boolean>(false);
 
-  const handleEditorWillMount = () => {
-    const finalOptions = editorWillMount(monaco);
-    return finalOptions || {};
-  }
+  let containerElement: HTMLDivElement;
 
-  const handleEditorDidMount = () => {
-    editorDidMount(editor(), monaco);
-    setSubscription(editor().onDidChangeModelContent((event) => {
-      if (!preventTriggerChangeEvent()) {
-        onChangeRef()?.(editor().getValue(), event);
-      }
-    }))
-  }
 
-  const handleEditorWillUnmount = () => {
-    editorWillUnmount(editor(), monaco);
-  }
+  const [onChangeRef] = createSignal(props.onChange);
 
-  const initMonaco = () => {
-    const finalValue = value !== null ? value : defaultValue;
+  let abortInitialization: (() => void) | undefined
 
-    if (containerElement()) {
-      const finalOptions = { ...options, ...handleEditorWillMount() };
-      const modelUri = uri?.(monaco);
-      let model = modelUri && monaco.editor.getModel(modelUri);
-      if (model) {
-        model.setValue(finalValue);
-        monaco.editor.setModelLanguage(model, language);
-      } else {
-        model = monaco.editor.createModel(finalValue, language, modelUri);
-      }
-      setEditor(monaco.editor.create(
-        containerElement(),
-        {
-          model,
-          ...(className ? { extraEditorClassName: className } : {}),
-          ...finalOptions,
-          ...(theme ? { theme } : {}),
-        },
-        overrideServices
-      ));
-      handleEditorDidMount();
-    }
-  };
+  onMount(async () => {
+    loader.config({ monaco: monacoEditor });
+    const loadMonaco = loader.init();
 
-  createEffect(initMonaco, []);
+    abortInitialization = () => loadMonaco.cancel();
 
-  createEffect(() => {
-    if (editor()) {
-      if (value === editor().getValue()) {
+    try {
+      const monaco = await loadMonaco;
+      const editor = createEditor(monaco);
+      setMonaco(monaco);
+      setEditor(editor);
+
+      props.onMount(monaco, editor)
+      setSubscription(editor.onDidChangeModelContent((event) => {
+        if (!preventTriggerChangeEvent()) {
+          onChangeRef()?.(editor.getValue(), event);
+        }
+      }));
+    } catch (err: any) {
+      if (err?.type === 'cancelation') {
         return;
       }
 
-      const model = editor().getModel();
-      setPreventTriggerChangeEvent(true);
-      editor().pushUndoStop();
-      model.pushEditOperations(
-        [],
-        [
-          {
-            range: model.getFullModelRange(),
-            text: value,
-          },
-        ],
-        undefined,
-      );
-      editor().pushUndoStop();
-      setPreventTriggerChangeEvent(false);
+      console.error('Could not initialize Monaco', err);
     }
-  }, [value]);
+  });
 
-  createEffect(() => {
-    if (editor()) {
-      const model = editor().getModel();
-      monaco.editor.setModelLanguage(model, language);
+  onCleanup(() => {
+    const _editor = editor();
+    if (!_editor) {
+      abortInitialization?.()
+      return;
     }
-  }, [language]);
 
-  createEffect(() => {
-    if (editor()) {
-      const { model: _model, ...optionsWithoutModel } = options;
-      editor().updateOptions({
-        ...(className ? { extraEditorClassName: className } : {}),
-        ...optionsWithoutModel,
-      });
-    }
-  }, [className, options]);
+    props.onBeforeUnmount?.(monaco()!, _editor);
+    subscription()?.dispose();
+    _editor.getModel()?.dispose()
+    _editor.dispose()
+  })
 
-  createEffect(() => {
-    if (editor()) {
-      editor().layout();
-    }
-  }, [width, height]);
 
-  createEffect(() => {
-    monaco.editor.setTheme(theme);
-    console.log(theme);
-  }, [theme]);
+  // Update the editor's theme whenever the theme prop changes
+  createEffect(
+    on(
+      () => props.theme,
+      theme => {
+        console.log("Setting theme to:", theme);
+        monaco()?.editor.setTheme(theme);
+      },
+      { defer: true }
+    )
+  )
 
   createEffect(
-    () => () => {
-      if (editor()) {
-        handleEditorWillUnmount();
-        editor().dispose();
-      }
-      if (subscription()) {
-        subscription().dispose();
-      }
-    },
-    []
-  );
+    on(
+      () => props.value,
+      value => {
+        const _editor = editor()
+        if (!_editor || typeof value === 'undefined') {
+          return
+        }
+
+        if (_editor.getOption(monaco()!.editor.EditorOption.readOnly)) {
+          _editor.setValue(value);
+          return;
+        }
+
+        if (value !== _editor.getValue()) {
+          setPreventTriggerChangeEvent(true);
+          _editor.executeEdits('', [
+            {
+              range: _editor.getModel()!.getFullModelRange(),
+              text: value,
+              forceMoveMarkers: true
+            },
+          ])
+
+          _editor.pushUndoStop();
+          setPreventTriggerChangeEvent(false);
+        }
+      },
+      { defer: true }
+    )
+  )
+
+  createEffect(
+    on(
+      () => props.language,
+      language => {
+        const model = editor()?.getModel()
+        if (!language || !model) {
+          return
+        }
+
+        monaco()?.editor.setModelLanguage(model, language)
+      },
+      { defer: true },
+    ),
+  )
+
+  createEffect(
+    on(
+      () => props.options,
+      opts => {
+        editor()?.updateOptions({
+          ...(props.className ? { extraEditorClassName: props.className } : {}),
+          ...opts
+        });
+      },
+      { defer: true }
+    )
+  )
+
+  const createEditor = (_monaco: Monaco) => {
+    const finalValue = props.value ?? props.defaultValue;
+    const finalOptions = { ...props.options, ...(props.onBeforeMount(monaco()) || {}) };
+    const model = getOrCreateModel(_monaco, finalValue, props.language, props.path);
+
+    return _monaco.editor.create(
+      containerElement,
+      {
+        model: model,
+        automaticLayout: true,
+        ...finalOptions,
+      },
+      props.overrideServices,
+    )
+  }
 
   return (
-    // @ts-ignore
-    <div ref={containerElement()} style={style()} class="solid-monaco-editor-container"></div>
+    <MonacoContainer class={props.class} width={props.width} height={props.height}>
+      {!editor() && <Loader>{props.loadingState}</Loader>}
+      <div style={{ width: '100%' }} ref={containerElement!} />
+    </MonacoContainer>
   )
 }
 
 MonacoEditor.displayName = "MonacoEditor";
-
-export default MonacoEditor;

@@ -1,6 +1,6 @@
-import * as monaco from "monaco-editor";
-import MonacoEditor from "./editor";
+import loader from "@monaco-editor/loader";
 
-export * from "./types";
-// eslint-disable-next-line no-restricted-exports
-export { MonacoEditor as default, monaco };
+export { loader };
+
+export * from "./editor";
+export { MonacoEditorProps } from "./types";
