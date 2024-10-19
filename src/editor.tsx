@@ -6,6 +6,8 @@ import loader, { Monaco } from '@monaco-editor/loader';
 import { MonacoContainer } from "./container";
 import { Loader } from "./loader";
 
+const viewStates = new Map();
+
 export function MonacoEditor(editorProps: MonacoEditorProps) {
   const props = mergeProps(
     {
@@ -14,6 +16,7 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
       height: '100%',
       language: 'javascript',
       loadingState: 'Loading...',
+      defaultValue: '',
       saveViewState: true,
       onBeforeMount: noop,
       onMount: noop,
@@ -22,16 +25,14 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
     editorProps,
   );
   const [monaco, setMonaco] = createSignal<Monaco>()
-  const [editor, setEditor] = createSignal<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
-  const [subscription, setSubscription] = createSignal<monacoEditor.IDisposable | null>(null);
-  const [preventTriggerChangeEvent, setPreventTriggerChangeEvent] = createSignal<boolean>(false);
+  const [editor, setEditor] = createSignal<monacoEditor.editor.IStandaloneCodeEditor>();
 
-  let containerElement: HTMLDivElement;
+  let containerRef: HTMLDivElement;
 
-
-  const [onChangeRef] = createSignal(props.onChange);
 
   let abortInitialization: (() => void) | undefined
+  let monacoOnChangeSubscription: monacoEditor.IDisposable;
+  let isOnChangeSuppressed = false;
 
   onMount(async () => {
     loader.config({ monaco: monacoEditor });
@@ -46,11 +47,11 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
       setEditor(editor);
 
       props.onMount(monaco, editor)
-      setSubscription(editor.onDidChangeModelContent((event) => {
-        if (!preventTriggerChangeEvent()) {
-          onChangeRef()?.(editor.getValue(), event);
+      monacoOnChangeSubscription = editor.onDidChangeModelContent((event) => {
+        if (!isOnChangeSuppressed) {
+          props.onChange?.(editor.getValue(), event);
         }
-      }));
+      });
     } catch (err: any) {
       if (err?.type === 'cancelation') {
         return;
@@ -68,7 +69,7 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
     }
 
     props.onBeforeUnmount?.(monaco()!, _editor);
-    subscription()?.dispose();
+    monacoOnChangeSubscription?.dispose();
     _editor.getModel()?.dispose()
     _editor.dispose()
   })
@@ -81,38 +82,6 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
       theme => {
         console.log("Setting theme to:", theme);
         monaco()?.editor.setTheme(theme);
-      },
-      { defer: true }
-    )
-  )
-
-  createEffect(
-    on(
-      () => props.value,
-      value => {
-        const _editor = editor()
-        if (!_editor || typeof value === 'undefined') {
-          return
-        }
-
-        if (_editor.getOption(monaco()!.editor.EditorOption.readOnly)) {
-          _editor.setValue(value);
-          return;
-        }
-
-        if (value !== _editor.getValue()) {
-          setPreventTriggerChangeEvent(true);
-          _editor.executeEdits('', [
-            {
-              range: _editor.getModel()!.getFullModelRange(),
-              text: value,
-              forceMoveMarkers: true
-            },
-          ])
-
-          _editor.pushUndoStop();
-          setPreventTriggerChangeEvent(false);
-        }
       },
       { defer: true }
     )
@@ -135,6 +104,43 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
 
   createEffect(
     on(
+      () => props.value,
+      value => {
+        const _editor = editor()
+        if (!_editor || typeof value === 'undefined') {
+          return
+        }
+
+        if (_editor.getOption(monaco()!.editor.EditorOption.readOnly)) {
+          _editor.setValue(value);
+          return;
+        }
+
+        if (value !== _editor.getValue()) {
+          const model = _editor.getModel();
+          isOnChangeSuppressed = true;
+          model?.pushEditOperations(
+            [],
+            [
+              {
+                range: model.getFullModelRange(),
+                text: value,
+              },
+            ],
+            // @ts-ignore
+            undefined
+          );
+
+          _editor.pushUndoStop();
+          isOnChangeSuppressed = false;
+        }
+      },
+      { defer: true }
+    )
+  )
+
+  createEffect(
+    on(
       () => props.options,
       opts => {
         editor()?.updateOptions({
@@ -146,17 +152,40 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
     )
   )
 
-  const createEditor = (_monaco: Monaco) => {
-    const finalValue = props.value ?? props.defaultValue;
-    const finalOptions = { ...props.options, ...(props.onBeforeMount(monaco()) || {}) };
-    const model = getOrCreateModel(_monaco, finalValue, props.language, props.path);
+  createEffect(
+    on(
+      () => props.path,
+      (path, prevPath) => {
+        const _monaco = monaco()
+        if (!_monaco) {
+          return
+        }
 
-    return _monaco.editor.create(
-      containerElement,
+        const model = getOrCreateModel(_monaco, props.value ?? props.defaultValue, props.language, path)
+
+        if (model !== editor()?.getModel()) {
+          if (props.saveViewState) {
+            viewStates.set(prevPath, editor()?.saveViewState())
+          }
+          editor()?.setModel(model)
+          if (props.saveViewState) {
+            editor()?.restoreViewState(viewStates.get(path))
+          }
+        }
+      },
+      { defer: true },
+    ),
+  )
+
+  const createEditor = (monaco: Monaco) => {
+    const model = getOrCreateModel(monaco, props.value ?? props.defaultValue, props.language, props.path);
+
+    return monaco.editor.create(
+      containerRef,
       {
         model: model,
         automaticLayout: true,
-        ...finalOptions,
+        ...props.options,
       },
       props.overrideServices,
     )
@@ -165,7 +194,7 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
   return (
     <MonacoContainer class={props.class} width={props.width} height={props.height}>
       {!editor() && <Loader>{props.loadingState}</Loader>}
-      <div style={{ width: '100%' }} ref={containerElement!} />
+      <div style={{ width: '100%' }} ref={containerRef!} />
     </MonacoContainer>
   )
 }
