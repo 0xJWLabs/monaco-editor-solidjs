@@ -1,8 +1,8 @@
 import { createSignal, JSX } from 'solid-js'
 import { MonacoEditor } from '../src'
 
-import styles from './monaco.module.css'
 import { exampleData } from './example-data'
+import styles from './monaco.module.css'
 
 const builtinThemes = ['vs', 'vs-dark', 'hc-light', 'hc-black'] as const
 

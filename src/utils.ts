@@ -1,4 +1,4 @@
-import { Monaco } from '@monaco-editor/loader';
+import type { Monaco } from '@monaco-editor/loader';
 
 export function processSize(size: number | string) {
   return !/^\d+$/.test(size as string) ? size : `${size}px`;

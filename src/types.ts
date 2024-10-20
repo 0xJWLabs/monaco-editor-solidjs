@@ -1,5 +1,5 @@
 import * as monacoEditor from "monaco-editor";
-import { Monaco } from "@monaco-editor/loader";
+import type { Monaco } from "@monaco-editor/loader";
 
 /**
  * @remarks

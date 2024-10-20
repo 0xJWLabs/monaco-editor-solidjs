@@ -1,7 +1,7 @@
-import type { Component, ParentComponent } from 'solid-js'
+import { A, Route, Router } from '@solidjs/router';
+import type { Component, ParentComponent } from 'solid-js';
 import styles from './app.module.css';
 import { MonacoPlayground } from './monaco';
-import { A, Route, Router } from '@solidjs/router'
 
 const Wrapper: ParentComponent = props => {
   return (

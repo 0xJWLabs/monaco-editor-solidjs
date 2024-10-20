@@ -1,27 +1,29 @@
+import loader, { type Monaco } from '@monaco-editor/loader';
 import * as monacoEditor from "monaco-editor";
-import { MonacoEditorProps } from "./types";
-import { createEffect, createSignal, onCleanup, onMount, on, mergeProps } from "solid-js";
-import { getOrCreateModel, noop } from "./utils";
-import loader, { Monaco } from '@monaco-editor/loader';
+import { createEffect, createSignal, mergeProps, on, onCleanup, onMount } from "solid-js";
 import { MonacoContainer } from "./container";
 import { Loader } from "./loader";
+import { MonacoEditorProps } from "./types";
+import { getOrCreateModel, noop } from "./utils";
 
 const viewStates = new Map();
 
+const DEFAULT_PROPS = {
+  theme: 'vs-light',
+  width: '100%',
+  height: '100%',
+  language: 'javascript',
+  loadingState: 'Loading...',
+  defaultValue: '',
+  saveViewState: true,
+  onBeforeMount: noop,
+  onMount: noop,
+  onBeforeUnmount: noop,
+}
+
 export function MonacoEditor(editorProps: MonacoEditorProps) {
   const props = mergeProps(
-    {
-      theme: 'vs-light',
-      width: '100%',
-      height: '100%',
-      language: 'javascript',
-      loadingState: 'Loading...',
-      defaultValue: '',
-      saveViewState: true,
-      onBeforeMount: noop,
-      onMount: noop,
-      onBeforeUnmount: noop,
-    },
+    DEFAULT_PROPS, 
     editorProps,
   );
   const [monaco, setMonaco] = createSignal<Monaco>()
