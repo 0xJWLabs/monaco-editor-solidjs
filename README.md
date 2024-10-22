@@ -14,7 +14,7 @@
 [npm-url]: https://www.npmjs.com/package/monaco-editor-solidjs
 [npm-image]: https://img.shields.io/npm/v/monaco-editor-solidjs?style=for-the-badge&logo=npm&labelColor=181825&color=a6e3a1
 [bun-url]: https://bun.sh/
-[bun-image]: https://img.shields.io/badge/maintained%2Fwith-bun-89b4fa.svg?style=for-the-badge&logo=bun&labelColor=181825
+[bun-image]: https://img.shields.io/badge/maintained_with-bun-89b4fa.svg?style=for-the-badge&logo=bun&labelColor=181825
 
 </div>
 
