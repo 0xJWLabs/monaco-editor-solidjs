@@ -1,6 +1,6 @@
 {
   "name": "monaco-editor-solidjs",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Monaco Editor for SolidJS",
   "files": [
     "dist"
