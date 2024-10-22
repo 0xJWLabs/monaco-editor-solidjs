@@ -10,11 +10,17 @@ export type EditorConstructionOptions = NonNullable<
   Parameters<typeof monacoEditor.editor.create>[1]
 >
 
+/**
+ * Change handler signature for the Monaco editor content.
+ */
 export type ChangeHandler = (
   value: string,
   event: monacoEditor.editor.IModelContentChangedEvent,
 ) => void;
 
+/** 
+ * Base propereties for configuring a Monaco Editor.
+ */
 export interface MonacoEditorBaseProps {
   /**
    * Width of editor. Defaults to 100%.
