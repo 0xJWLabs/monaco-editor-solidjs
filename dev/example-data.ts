@@ -22,6 +22,28 @@ fetchData('https://api.example.com/data')
     });`,
   },
   {
+    language: 'typescript',
+    content: `async function fetchData(url: string) {
+    try {
+        let response = await fetch(url);
+        let data = await response.json();
+        console.log(data);
+        return data;
+    } catch (error) {
+        console.error("An error occurred:", error);
+        throw error;
+    }
+}
+
+fetchData('https://api.example.com/data')
+    .then(data: any => {
+        console.log("Data fetched successfully:", data);
+    })
+    .catch(error: any => {
+        console.error("Failed to fetch data:", error);
+    });`,
+  },
+  {
     language: 'html',
     content: `<!DOCTYPE html>
 <html lang="en">

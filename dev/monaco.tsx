@@ -1,13 +1,13 @@
 import { createSignal, JSX } from 'solid-js'
-import { MonacoEditor } from '../src'
+import { MonacoEditor, Themes } from '../src'
 
 import { exampleData } from './example-data'
 import styles from './monaco.module.css'
 
-const builtinThemes = ['vs', 'vs-dark', 'hc-light', 'hc-black'] as const
+const builtinThemes = ['vs', 'vs-dark', 'hc-light', 'hc-black', ...Themes] as const;
 
 export const MonacoPlayground = () => {
-  const [theme, setTheme] = createSignal<string>(builtinThemes[0])
+  const [theme, setTheme] = createSignal<string>(builtinThemes[0] as string)
   const [value, setValue] = createSignal<string>(exampleData[0].content)
   const [language, setLanguage] = createSignal<string>(exampleData[0].language)
 

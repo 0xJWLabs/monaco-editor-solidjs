@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
-import solidPlugin from 'vite-plugin-solid'
+import solidPlugin from 'vite-plugin-solid';
+import monacoEditorPlugin from '@tomjs/vite-plugin-monaco-editor';
 
 export default defineConfig({
   resolve: {
@@ -9,8 +10,9 @@ export default defineConfig({
   },
   plugins: [
     solidPlugin(),
+    monacoEditorPlugin(),
     {
-      name: 'Reaplace env variables',
+      name: 'Replace env variables',
       transform(code, id) {
         if (id.includes('node_modules')) {
           return code

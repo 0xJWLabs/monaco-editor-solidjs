@@ -5,11 +5,12 @@ import { MonacoContainer } from "./container";
 import { Loader } from "./loader";
 import { MonacoEditorProps } from "./types";
 import { getOrCreateModel, noop } from "./utils";
+import { applyTheme } from './themes';
 
 const viewStates = new Map();
 
 const DEFAULT_PROPS = {
-  theme: 'vs-light',
+  theme: 'vs',
   width: '100%',
   height: '100%',
   language: 'javascript',
@@ -23,7 +24,7 @@ const DEFAULT_PROPS = {
 
 export function MonacoEditor(editorProps: MonacoEditorProps) {
   const props = mergeProps(
-    DEFAULT_PROPS, 
+    DEFAULT_PROPS,
     editorProps,
   );
   const [monaco, setMonaco] = createSignal<Monaco>()
@@ -44,9 +45,11 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
 
     try {
       const monaco = await loadMonaco;
-      const editor = createEditor(monaco);
       setMonaco(monaco);
+      const editor = createEditor(monaco);
       setEditor(editor);
+
+      applyTheme(monaco);
 
       props.onMount(monaco, editor)
       monacoOnChangeSubscription = editor.onDidChangeModelContent((event) => {
@@ -121,6 +124,7 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
         if (value !== _editor.getValue()) {
           const model = _editor.getModel();
           isOnChangeSuppressed = true;
+          _editor.pushUndoStop();
           model?.pushEditOperations(
             [],
             [
@@ -145,10 +149,13 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
     on(
       () => props.options,
       opts => {
-        editor()?.updateOptions({
-          ...(props.className ? { extraEditorClassName: props.className } : {}),
-          ...opts
-        });
+        if (opts) {
+          const { model: _model, ...optionsWithoutModel } = opts;
+          editor()?.updateOptions({
+            ...(props.className ? { extraEditorClassName: props.className } : {}),
+            ...optionsWithoutModel
+          });
+        } 
       },
       { defer: true }
     )
@@ -165,6 +172,10 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
 
         const model = getOrCreateModel(_monaco, props.value ?? props.defaultValue, props.language, path)
 
+        if (model) {
+           model.setValue(props.value ?? props.defaultValue);
+        }
+
         if (model !== editor()?.getModel()) {
           if (props.saveViewState) {
             viewStates.set(prevPath, editor()?.saveViewState())
@@ -180,14 +191,26 @@ export function MonacoEditor(editorProps: MonacoEditorProps) {
   )
 
   const createEditor = (monaco: Monaco) => {
-    const model = getOrCreateModel(monaco, props.value ?? props.defaultValue, props.language, props.path);
+    const finalValue = props.value ?? props.defaultValue;
+
+    const model = getOrCreateModel(monaco, finalValue, props.language, props.path);
+    if (model) {
+      model.setValue(finalValue);
+      monaco.editor.setModelLanguage(model, props.language);
+    }
+
+    const theme = props.theme
 
     return monaco.editor.create(
       containerRef,
       {
-        model: model,
+        model,
         automaticLayout: true,
+        "semanticHighlighting.enabled": true,
+        "tabCompletion": "on",
+        ...(props.className ? { extraEditorClassName: props.className }: {}),
         ...props.options,
+        ...(theme ? { theme } : {})
       },
       props.overrideServices,
     )

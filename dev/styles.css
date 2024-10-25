@@ -14,10 +14,10 @@ select {
   position: relative;
   min-width: 200px;
   padding: 10px 15px;
-  border: 1px solid #c4c4c4;
+  border: 1px solid #313244;
   border-radius: 4px;
-  background-color: #ffffff;
-  color: #333;
+  background-color: #11111B;
+  color: #cdd6f4;
   font-size: 16px;
   appearance: none;
   cursor: pointer;
@@ -26,16 +26,16 @@ select {
 }
 
 select:hover {
-  border-color: #a4a4a4;
+  border-color: #89b4fa;
 }
 
 select:focus {
-  border-color: #888;
+  border-color: #89b4fa;
   outline: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 select option:hover,
 select option:active {
-  background-color: #f0f0f0;
+  background-color: #181825;
 }

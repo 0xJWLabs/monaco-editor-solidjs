@@ -112,7 +112,13 @@ export interface MonacoEditorProps extends MonacoEditorBaseProps {
    * Let the language be inferred from the path
    */
   path?: string;
+
+  /**
+   * Let the language be inferred from the path
+   */
+  uri?: (monaco: typeof monacoEditor) => monacoEditor.Uri;
 }
 
 // Default themes
+
 export type Theme = monacoEditor.editor.BuiltinTheme | string;
